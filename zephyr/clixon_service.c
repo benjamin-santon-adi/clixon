@@ -47,10 +47,83 @@
 #include <mbedtls/x509_crt.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/error.h>
+#ifdef CONFIG_MBEDTLS_DEBUG
+#include <mbedtls/debug.h>
+#endif
 #endif /* CONFIG_CLIXON_NETCONF_TLS */
 #endif /* CONFIG_CLIXON_NETCONF */
 
 LOG_MODULE_REGISTER(clixon_service, CONFIG_CLIXON_LOG_LEVEL);
+
+#ifdef CONFIG_CLIXON_NETCONF_TLS
+#ifdef CONFIG_MBEDTLS_DEBUG
+/**
+ * @brief Debug callback for mbedTLS
+ */
+static void tls_debug(void *ctx, int level, const char *file, int line,
+		      const char *str)
+{
+	const char *p, *basename;
+	
+	/* Extract basename from file path */
+	for (p = basename = file; *p != '\0'; p++) {
+		if (*p == '/' || *p == '\\') {
+			basename = p + 1;
+		}
+	}
+
+	LOG_INF("mbedTLS[%d] %s:%04d: %s", level, basename, line, str);
+}
+#endif
+
+/**
+ * @brief Send callback for mbedTLS bio layer
+ */
+static int tls_send(void *ctx, const unsigned char *buf, size_t len)
+{
+	int sock = (int)(intptr_t)ctx;
+	int ret = send(sock, buf, len, 0);
+	
+	LOG_DBG("tls_send: sock=%d, len=%zu, ret=%d, errno=%d", sock, len, ret, errno);
+	
+	if (ret < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			return MBEDTLS_ERR_SSL_WANT_WRITE;
+		}
+		LOG_ERR("tls_send error: errno=%d", errno);
+		return -errno;  /* Return negative errno */
+	}
+	
+	return ret;
+}
+
+/**
+ * @brief Receive callback for mbedTLS bio layer
+ */
+static int tls_recv(void *ctx, unsigned char *buf, size_t len)
+{
+	int sock = (int)(intptr_t)ctx;
+	int ret = recv(sock, buf, len, 0);
+	
+	LOG_DBG("tls_recv: sock=%d, len=%zu, ret=%d, errno=%d", sock, len, ret, errno);
+	
+	if (ret < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			LOG_DBG("tls_recv: would block");
+			return MBEDTLS_ERR_SSL_WANT_READ;
+		}
+		LOG_ERR("tls_recv error: errno=%d", errno);
+		return -errno;  /* Return negative errno */
+	}
+	
+	if (ret == 0) {
+		LOG_WRN("tls_recv: connection closed (EOF)");
+		return 0;  /* Connection closed */
+	}
+	
+	return ret;
+}
+#endif
 
 /* Clixon service state */
 static struct {
@@ -192,10 +265,9 @@ close(client_sock);
 continue;
 }
 
-/* Set the socket for SSL */
-mbedtls_ssl_set_bio(&ssl, &client_sock,
-(mbedtls_ssl_send_t *)send,
-(mbedtls_ssl_recv_t *)recv, NULL);
+/* Set the socket for SSL - use wrapper functions for proper bio layer */
+mbedtls_ssl_set_bio(&ssl, (void *)(intptr_t)client_sock,
+tls_send, tls_recv, NULL);
 
 /* Perform SSL handshake */
 LOG_DBG("Starting TLS handshake with client");
@@ -309,6 +381,13 @@ return -EINVAL;
 mbedtls_ssl_conf_rng(&clixon_service.ssl_conf,
 mbedtls_ctr_drbg_random,
 &clixon_service.ctr_drbg);
+
+#ifdef CONFIG_MBEDTLS_DEBUG
+/* Set debug callback for verbose TLS logging */
+mbedtls_ssl_conf_dbg(&clixon_service.ssl_conf, tls_debug, NULL);
+mbedtls_debug_set_threshold(4); /* 0-4, 4 is most verbose */
+LOG_INF("mbedTLS debug logging enabled");
+#endif
 
 /* Configure our certificate */
 ret = mbedtls_ssl_conf_own_cert(&clixon_service.ssl_conf,
