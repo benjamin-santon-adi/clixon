@@ -16,6 +16,10 @@ if(CONFIG_CLIXON)
   
   # Define that we have config.h
   zephyr_compile_definitions(HAVE_CONFIG_H=1)
+  
+  # Disable -Werror for clixon library sources to allow upstream code with warnings
+  # Twister and some build configurations use -Werror by default
+  zephyr_library_compile_options(-Wno-error)
 endif()
 
 # mbedTLS includes for NETCONF TLS support
