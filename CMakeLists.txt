@@ -13,6 +13,9 @@ if(CONFIG_CLIXON)
   # Add Zephyr compatibility layer to include path FIRST
   # This allows our compatibility headers to override system headers
   zephyr_include_directories(BEFORE ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr)
+  
+  # Define that we have config.h
+  zephyr_compile_definitions(HAVE_CONFIG_H=1)
 endif()
 
 # Clixon service (auto-initialization support)
@@ -27,6 +30,10 @@ if(CONFIG_CLIXON)
   zephyr_library_sources(
     # Don't include dirent.c - Zephyr POSIX layer provides opendir/readdir/closedir
     ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/cligen/cligen.c
+    ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/clixon_err_zephyr.c
+    ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/clixon_log_zephyr.c
+    ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/clixon_debug_zephyr.c
+    ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/clixon_options_zephyr.c
   )
 endif()
 
@@ -41,19 +48,30 @@ if(CONFIG_CLIXON)
     ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_string.c
     ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml.c
     
-    # More to enable as dependencies are resolved:
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_err.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_event.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_event_select.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_file.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_handle.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_log.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_options.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_proc.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_sig.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_stream.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_uid.c
+    # Support infrastructure
+    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_handle.c
+    # Using zephyr stub: ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_options.c
   )
+endif()
+
+# NETCONF support
+if(CONFIG_CLIXON_NETCONF)
+  zephyr_library_sources(
+    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_netconf_lib.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_netconf_input.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_netconf_monitoring.c
+  )
+endif()
+
+if(CONFIG_CLIXON)
+  # More to enable as dependencies are resolved:
+  # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_event.c
+  # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_event_select.c
+  # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_file.c
+  # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_proc.c
+  # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_sig.c
+  # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_stream.c
+  # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_uid.c
   # zephyr_library_sources(
   #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_api_path_parse.c
   #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_instance_id_parse.c

@@ -10,6 +10,48 @@ config CLIXON
 	  NOTE: Work in progress - only minimal core library compiles.
 	  File system support disabled until dependencies resolved.
 
+if CLIXON
+
+module = CLIXON
+module-str = clixon
+source "subsys/logging/Kconfig.template.log_config"
+
+config CLIXON_NETCONF
+	bool "Enable NETCONF support"
+	select NETWORKING
+	select NET_SOCKETS
+	select NET_TCP
+	select NET_SOCKETS_POSIX_NAMES
+	help
+	  Enable NETCONF protocol support in Clixon.
+	  Provides network configuration management over TCP.
+
+config CLIXON_NETCONF_TLS
+	bool "Enable NETCONF over TLS (RFC 7589)"
+	depends on CLIXON_NETCONF
+	select MBEDTLS
+	select MBEDTLS_ENABLE_HEAP
+	select MBEDTLS_TLS_VERSION_1_2
+	select MBEDTLS_DTLS
+	select MBEDTLS_KEY_EXCHANGE_ALL
+	select MBEDTLS_CIPHER_ALL
+	select TLS_CREDENTIALS
+	select NET_SOCKETS_SOCKOPT_TLS
+	help
+	  Enable NETCONF over TLS (also known as NETCONF over SSH in some contexts).
+	  Provides secure NETCONF connections using TLS/SSL encryption.
+	  Requires mbedTLS library.
+
+config CLIXON_NETCONF_PORT
+	int "NETCONF TCP port"
+	depends on CLIXON_NETCONF
+	default 830
+	help
+	  TCP port for NETCONF connections.
+	  Default is 830 (IANA assigned port for NETCONF over SSH/TLS).
+
+endif # CLIXON
+
 config CLIXON_SERVICE
 	bool "Enable Clixon service auto-initialization"
 	default y if CLIXON
