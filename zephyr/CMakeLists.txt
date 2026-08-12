@@ -18,6 +18,13 @@ if(CONFIG_CLIXON)
   zephyr_compile_definitions(HAVE_CONFIG_H=1)
 endif()
 
+# mbedTLS includes for NETCONF TLS support
+if(CONFIG_CLIXON_NETCONF_TLS)
+  # mbedTLS headers are automatically included by the mbedTLS module
+  # But we ensure they're available for our service code
+  zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/../../crypto/mbedtls/include)
+endif()
+
 # Clixon service (auto-initialization support)
 if(CONFIG_CLIXON_SERVICE)
   zephyr_library_sources(
