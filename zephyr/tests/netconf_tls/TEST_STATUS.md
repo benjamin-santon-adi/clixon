@@ -2,16 +2,34 @@
 
 ## Build Status: ✅ PASS
 
-The NETCONF over TLS test **builds successfully**:
+The NETCONF over TLS test **builds successfully** for multiple platforms:
+
+### Supported Platforms
+
+| Platform | Build | Memory | Notes |
+|----------|-------|--------|-------|
+| qemu_x86 | ✅ PASS | 684,092 bytes (2.10% of 31MB) | Primary test platform |
+| native_sim | ✅ PASS | Similar to qemu | Network simulation capable |
+| eval_adin6310t1lebz/max32690/m4 | ✅ PASS | 245,672 bytes (23.43% of 1MB) | Production hardware |
+
+### Build Commands
+
+**qemu_x86 or native_sim (via Twister):**
 ```bash
 python zephyr/scripts/twister -T modules/lib/clixon/zephyr/tests/netconf_tls -p qemu_x86
+python zephyr/scripts/twister -T modules/lib/clixon/zephyr/tests/netconf_tls -p native_sim
+```
+
+**eval_adin6310t1lebz (direct west build recommended on Windows):**
+```bash
+# Use direct west build to avoid Twister path length issues on Windows (MAX_PATH=260)
+west build -b eval_adin6310t1lebz/max32690/m4 modules/lib/clixon/zephyr/tests/netconf_tls
 ```
 
 **Result:**
 - ✅ **Build:** PASS (0 errors, 0 warnings)
 - ⏸️ **Execution:** Not run (requires network setup)
-- **Build time:** ~42 seconds
-- **Memory:** 684,092 bytes RAM (2.10% of 31MB)
+- **Build time:** ~42 seconds (qemu_x86)
 
 ## Execution Status: ⚠️ Requires Network Setup
 

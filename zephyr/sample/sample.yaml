@@ -11,9 +11,13 @@ common:
     - qemu_x86
     - native_sim
     - native_posix
+    - eval_adin6310t1lebz/max32690/m4
+  # Note: STM32 boards (e.g., nucleo_f767zi) are not supported due to
+  # enum name conflict between STM32 HAL and Clixon library (SET enum)
+  # See STM32_LIMITATION.md for details
   integration_platforms:
     - qemu_x86
-    - native_sim
+    - native_sims
 tests:
   sample.lib.clixon.basic:
     harness: console

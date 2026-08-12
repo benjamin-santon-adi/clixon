@@ -8,6 +8,7 @@ tests:
     platform_allow:
       - native_sim
       - qemu_x86
+      - eval_adin6310t1lebz/max32690/m4
     integration_platforms:
       - native_sim
     harness: pytest

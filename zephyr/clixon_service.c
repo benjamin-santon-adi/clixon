@@ -9,6 +9,14 @@
 #include <zephyr/logging/log.h>
 
 #ifdef CONFIG_CLIXON
+/* STM32 compatibility workaround - undef SET/RESET macros from STM32 HAL 
+ * before including clixon headers which define SET as an enum value
+ */
+#ifdef CONFIG_SOC_FAMILY_STM32
+#undef SET
+#undef RESET  
+#endif
+
 #ifdef HAVE_CONFIG_H
 #include "clixon_config.h"
 #endif
@@ -266,27 +274,27 @@ return -EINVAL;
 }
 
 /* Load embedded server certificate */
-ret = mbedtls_x509_crt_parse(&clixon_service.server_cert,
-server_cert_der,
-server_cert_der_len);
-if (ret != 0) {
-LOG_ERR("Failed to parse server certificate: -0x%04x", -ret);
-return -EINVAL;
-}
-LOG_INF("Server certificate loaded (%u bytes)", server_cert_der_len);
+	ret = mbedtls_x509_crt_parse_der(&clixon_service.server_cert,
+					  server_cert_der,
+					  server_cert_der_len);
+	if (ret != 0) {
+		LOG_ERR("Failed to parse server certificate: -0x%04x", -ret);
+		return -EINVAL;
+	}
+	LOG_INF("Server certificate loaded (%u bytes)", server_cert_der_len);
 
-/* Load embedded server private key */
-ret = mbedtls_pk_parse_key(&clixon_service.server_key,
-server_key_der,
-server_key_der_len,
-NULL, 0, /* No password */
-mbedtls_ctr_drbg_random,
-&clixon_service.ctr_drbg);
-if (ret != 0) {
-LOG_ERR("Failed to parse server key: -0x%04x", -ret);
-return -EINVAL;
-}
-LOG_INF("Server private key loaded (%u bytes)", server_key_der_len);
+	/* Load embedded server private key */
+	ret = mbedtls_pk_parse_key(&clixon_service.server_key,
+				    server_key_der,
+				    server_key_der_len,
+				    NULL, 0, /* No password */
+				    mbedtls_ctr_drbg_random,
+				    &clixon_service.ctr_drbg);
+	if (ret != 0) {
+		LOG_ERR("Failed to parse server key: -0x%04x", -ret);
+		return -EINVAL;
+	}
+	LOG_INF("Server private key loaded (%u bytes)", server_key_der_len);
 
 /* Setup SSL configuration */
 ret = mbedtls_ssl_config_defaults(&clixon_service.ssl_conf,

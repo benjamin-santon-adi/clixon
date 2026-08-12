@@ -52,14 +52,7 @@ int main(void)
 	printk("- NETCONF/RESTCONF interfaces\n");
 	printk("- Embedded database\n");
 	printk("- Transaction mechanism\n");
-
-	/* Main loop */
-	while (1) {
-		k_sleep(K_SECONDS(5));
-		printk("Clixon sample running...\n");
-		
-		/* Add periodic Clixon operations here */
-	}
+	printk("Clixon sample running...\n");
 
 	return 0;
 }
