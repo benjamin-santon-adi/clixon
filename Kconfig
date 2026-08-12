@@ -1,9 +1,13 @@
 config CLIXON
 	bool "Clixon YANG-based configuration manager"
+	select POSIX_API if !NATIVE_APPLICATION
+	select FILE_SYSTEM
+	select FILE_SYSTEM_LITTLEFS
 	help
 	  Enable the Clixon library - a YANG-based configuration manager
 	  with interactive CLI, NETCONF and RESTCONF interfaces, an embedded
 	  database and transaction mechanism.
+	  Requires POSIX API support and a file system (LittleFS).
 
 config CLIXON_SERVICE
 	bool "Enable Clixon service auto-initialization"
