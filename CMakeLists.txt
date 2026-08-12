@@ -25,77 +25,34 @@ endif()
 # Zephyr compatibility layer
 if(CONFIG_CLIXON)
   zephyr_library_sources(
-    ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/dirent.c
+    # Don't include dirent.c - Zephyr POSIX layer provides opendir/readdir/closedir
+    ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/cligen/cligen.c
   )
 endif()
 
 # Core clixon library sources (only when full library is enabled)
 if(CONFIG_CLIXON)
   zephyr_library_sources(
-    # Core functionality (no external dependencies)
-    # Note: Excluding files that require CLIgen library or dlopen/plugin support
-    # Also excluding files requiring OpenSSL
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_autocli.c  # Requires cligen
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_autocli_generate.c # Requires cligen
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_client.c # Requires cligen
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_data.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_datastore.c # Requires dlfcn (plugins)
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_datastore_read.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_datastore_write.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_debug.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_digest.c # Requires openssl
+    # Minimal core - only files that can build with CLIgen stubs
     ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_dispatcher.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_err.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_event.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_event_select.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_file.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_handle.c
     ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_hash.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_json.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_log.c
     ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_map.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_nacm.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_netconf_input.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_netconf_lib.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_netconf_monitoring.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_netns.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_options.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_path.c
-    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_plugin.c # Requires dlfcn (plugins)
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_proc.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_proto.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_proto_client.c
     ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_regex.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_sig.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_stream.c
     ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_string.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_text_syntax.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_uid.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_validate.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_validate_minmax.c
     ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_bind.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_changelog.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_default.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_diff.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_io.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_map.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_nsctx.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_sort.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_vec.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xpath.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xpath_ctx.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xpath_eval.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xpath_function.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xpath_optimize.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xpath_yang.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_cardinality.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_module.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_parse_lib.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_schema_mount.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_sub_parse.c
-    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_type.c
+    
+    # More to enable as dependencies are resolved:
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_err.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_event.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_event_select.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_file.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_handle.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_log.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_options.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_proc.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_sig.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_stream.c
+    # ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_uid.c
   )
   # zephyr_library_sources(
   #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_api_path_parse.c
