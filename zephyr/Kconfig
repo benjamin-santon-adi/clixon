@@ -1,0 +1,16 @@
+config CLIXON
+	bool "Clixon YANG-based configuration manager"
+	help
+	  Enable the Clixon library - a YANG-based configuration manager
+	  with interactive CLI, NETCONF and RESTCONF interfaces, an embedded
+	  database and transaction mechanism.
+
+if CLIXON
+
+config CLIXON_DEBUG
+	bool "Enable Clixon debug output"
+	default n
+	help
+	  Enable debug logging for Clixon library
+
+endif # CLIXON

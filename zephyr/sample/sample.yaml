@@ -1,0 +1,26 @@
+sample:
+  name: Clixon Basic Sample
+  description: Basic sample demonstrating Clixon library usage with Zephyr RTOS
+common:
+  tags:
+    - clixon
+    - netconf
+    - yang
+    - configuration
+  platform_allow:
+    - qemu_x86
+    - native_sim
+    - native_posix
+  integration_platforms:
+    - qemu_x86
+    - native_sim
+tests:
+  sample.lib.clixon.basic:
+    harness: console
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "Clixon Sample Application"
+        - "Initializing Clixon"
+        - "Clixon initialization complete"

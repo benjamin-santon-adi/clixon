@@ -1,0 +1,5 @@
+name: clixon
+
+build:
+  cmake: .
+  kconfig: Kconfig
