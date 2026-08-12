@@ -6,9 +6,14 @@ Clixon Basic Sample
 Overview
 ********
 
-This sample demonstrates the basic usage of the Clixon library with Zephyr RTOS.
-Clixon is a YANG-based configuration manager with interactive CLI, NETCONF and 
-RESTCONF interfaces, an embedded database and transaction mechanism.
+This sample demonstrates the basic integration structure for the Clixon library 
+with Zephyr RTOS. Clixon is a YANG-based configuration manager with interactive 
+CLI, NETCONF and RESTCONF interfaces, an embedded database and transaction mechanism.
+
+**Note**: The Clixon library currently requires POSIX features (syslog, dirent, etc.) 
+that are not fully available in Zephyr. This sample provides the module structure 
+and demonstrates how to build against Zephyr, but full library porting is still in 
+progress. For now, CONFIG_CLIXON is disabled by default.
 
 Requirements
 ************
