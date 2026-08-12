@@ -16,9 +16,20 @@ extern "C" {
 /**
  * @brief Check if Clixon service is initialized
  *
- * @return true if service is initialized, false otherwise
+ * @return true if initialized, false otherwise
  */
 bool clixon_service_is_initialized(void);
+
+#ifdef CONFIG_CLIXON
+/**
+ * @brief Get the Clixon handle from the service
+ *
+ * @return clixon_handle or NULL if not initialized
+ *
+ * Note: Include clixon_handle.h before using this function
+ */
+void *clixon_service_get_handle(void);
+#endif
 
 #ifdef __cplusplus
 }

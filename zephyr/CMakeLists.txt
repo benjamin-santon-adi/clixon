@@ -23,6 +23,13 @@ if(CONFIG_CLIXON_SERVICE)
   zephyr_library_sources(
     ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/clixon_service.c
   )
+  # Service needs hash for options handling
+  if(NOT CONFIG_CLIXON)
+    zephyr_library_sources(
+      ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_hash.c
+      ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_handle.c
+    )
+  endif()
 endif()
 
 # Zephyr compatibility layer

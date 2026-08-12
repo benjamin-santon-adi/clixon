@@ -40,8 +40,7 @@ clicon_option_str(clixon_handle h, const char *name)
     
     if ((copt = clicon_options(h)) == NULL)
         return NULL;
-    if (clicon_hash_get(copt, name, &val) < 0)
-        return NULL;
+    val = (char *)clicon_hash_value(copt, name, NULL);
     return val;
 }
 
@@ -69,10 +68,12 @@ int
 clicon_option_set(clixon_handle h, const char *name, const char *value)
 {
     clicon_hash_t *copt;
+    clicon_hash_t result;
     
     if ((copt = clicon_options(h)) == NULL)
         return -1;
-    return clicon_hash_set(copt, name, (char *)value);
+    result = clicon_hash_add(copt, name, (void *)value, strlen(value) + 1);
+    return (result != NULL) ? 0 : -1;
 }
 
 int
