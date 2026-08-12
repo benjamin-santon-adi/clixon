@@ -1,0 +1,8 @@
+# Test certificates (self-signed, for development only)
+test_certs/*.pem
+test_certs/*.der
+test_certs/*.csr
+test_certs/*.srl
+
+# But keep the generated headers
+!test_certs/*.h

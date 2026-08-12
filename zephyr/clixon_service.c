@@ -30,6 +30,16 @@
 #include <zephyr/net/net_ip.h>
 #include <errno.h>
 #include "clixon_netconf_lib.h"
+
+#ifdef CONFIG_CLIXON_NETCONF_TLS
+#include <zephyr/net/tls_credentials.h>
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/error.h>
+#endif /* CONFIG_CLIXON_NETCONF_TLS */
 #endif /* CONFIG_CLIXON_NETCONF */
 
 LOG_MODULE_REGISTER(clixon_service, CONFIG_CLIXON_LOG_LEVEL);
@@ -42,6 +52,14 @@ clixon_handle handle;
 int server_sock;
 k_tid_t netconf_thread_id;
 bool netconf_running;
+#ifdef CONFIG_CLIXON_NETCONF_TLS
+mbedtls_ssl_config ssl_conf;
+mbedtls_x509_crt server_cert;
+mbedtls_pk_context server_key;
+mbedtls_entropy_context entropy;
+mbedtls_ctr_drbg_context ctr_drbg;
+bool tls_initialized;
+#endif
 #endif
 } clixon_service;
 
@@ -154,24 +172,193 @@ const char *hello_msg =
 "</hello>\n"
 "]]>]]>\n";
 
+#ifdef CONFIG_CLIXON_NETCONF_TLS
+/* Setup TLS session for this client */
+mbedtls_ssl_context ssl;
+mbedtls_ssl_init(&ssl);
+
+ret = mbedtls_ssl_setup(&ssl, &clixon_service.ssl_conf);
+if (ret != 0) {
+LOG_ERR("Failed to setup SSL: -0x%04x", -ret);
+close(client_sock);
+continue;
+}
+
+/* Set the socket for SSL */
+mbedtls_ssl_set_bio(&ssl, &client_sock,
+(mbedtls_ssl_send_t *)send,
+(mbedtls_ssl_recv_t *)recv, NULL);
+
+/* Perform SSL handshake */
+LOG_DBG("Starting TLS handshake with client");
+while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
+if (ret != MBEDTLS_ERR_SSL_WANT_READ &&
+ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+LOG_ERR("TLS handshake failed: -0x%04x", -ret);
+mbedtls_ssl_free(&ssl);
+close(client_sock);
+goto next_client;
+}
+}
+LOG_INF("TLS handshake successful");
+
+/* Send hello message over TLS */
+ret = mbedtls_ssl_write(&ssl, (const unsigned char *)hello_msg,
+strlen(hello_msg));
+if (ret < 0) {
+LOG_ERR("Failed to send hello over TLS: -0x%04x", -ret);
+} else {
+LOG_INF("Sent NETCONF hello message to client over TLS");
+}
+
+mbedtls_ssl_close_notify(&ssl);
+mbedtls_ssl_free(&ssl);
+#else
 send(client_sock, hello_msg, strlen(hello_msg), 0);
 LOG_INF("Sent NETCONF hello message to client");
+#endif
 
 /* Close client socket for now */
 close(client_sock);
 LOG_INF("Client connection closed");
+
+#ifdef CONFIG_CLIXON_NETCONF_TLS
+next_client:
+continue;
+#endif
 }
 
 close(clixon_service.server_sock);
 LOG_INF("NETCONF server thread stopped");
 }
 
+#ifdef CONFIG_CLIXON_NETCONF_TLS
+/* Embedded test certificates (self-signed for testing only) */
+#include "test_certs/server_cert.h"
+#include "test_certs/server_key.h"
+
+/**
+ * @brief Initialize TLS/SSL context
+ */
+static int tls_init(void)
+{
+int ret;
+const char *pers = "netconf_server";
+
+LOG_INF("Initializing TLS for NETCONF");
+
+/* Initialize mbedTLS structures */
+mbedtls_ssl_config_init(&clixon_service.ssl_conf);
+mbedtls_x509_crt_init(&clixon_service.server_cert);
+mbedtls_pk_init(&clixon_service.server_key);
+mbedtls_entropy_init(&clixon_service.entropy);
+mbedtls_ctr_drbg_init(&clixon_service.ctr_drbg);
+
+/* Seed the random number generator */
+ret = mbedtls_ctr_drbg_seed(&clixon_service.ctr_drbg,
+mbedtls_entropy_func,
+&clixon_service.entropy,
+(const unsigned char *)pers,
+strlen(pers));
+if (ret != 0) {
+LOG_ERR("Failed to seed RNG: -0x%04x", -ret);
+return -EINVAL;
+}
+
+/* Load embedded server certificate */
+ret = mbedtls_x509_crt_parse(&clixon_service.server_cert,
+server_cert_der,
+server_cert_der_len);
+if (ret != 0) {
+LOG_ERR("Failed to parse server certificate: -0x%04x", -ret);
+return -EINVAL;
+}
+LOG_INF("Server certificate loaded (%u bytes)", server_cert_der_len);
+
+/* Load embedded server private key */
+ret = mbedtls_pk_parse_key(&clixon_service.server_key,
+server_key_der,
+server_key_der_len,
+NULL, 0, /* No password */
+mbedtls_ctr_drbg_random,
+&clixon_service.ctr_drbg);
+if (ret != 0) {
+LOG_ERR("Failed to parse server key: -0x%04x", -ret);
+return -EINVAL;
+}
+LOG_INF("Server private key loaded (%u bytes)", server_key_der_len);
+
+/* Setup SSL configuration */
+ret = mbedtls_ssl_config_defaults(&clixon_service.ssl_conf,
+MBEDTLS_SSL_IS_SERVER,
+MBEDTLS_SSL_TRANSPORT_STREAM,
+MBEDTLS_SSL_PRESET_DEFAULT);
+if (ret != 0) {
+LOG_ERR("Failed to set SSL config defaults: -0x%04x", -ret);
+return -EINVAL;
+}
+
+mbedtls_ssl_conf_rng(&clixon_service.ssl_conf,
+mbedtls_ctr_drbg_random,
+&clixon_service.ctr_drbg);
+
+/* Configure our certificate */
+ret = mbedtls_ssl_conf_own_cert(&clixon_service.ssl_conf,
+&clixon_service.server_cert,
+&clixon_service.server_key);
+if (ret != 0) {
+LOG_ERR("Failed to configure server certificate: -0x%04x", -ret);
+return -EINVAL;
+}
+
+/* Set auth mode to none for testing (no client cert required) */
+mbedtls_ssl_conf_authmode(&clixon_service.ssl_conf,
+MBEDTLS_SSL_VERIFY_NONE);
+
+clixon_service.tls_initialized = true;
+LOG_INF("TLS context initialized with embedded test certificates");
+LOG_WRN("Using self-signed test certificates - NOT FOR PRODUCTION");
+
+return 0;
+}
+
+/**
+ * @brief Cleanup TLS/SSL context
+ */
+static void tls_cleanup(void)
+{
+if (clixon_service.tls_initialized) {
+mbedtls_ssl_config_free(&clixon_service.ssl_conf);
+mbedtls_x509_crt_free(&clixon_service.server_cert);
+mbedtls_pk_free(&clixon_service.server_key);
+mbedtls_ctr_drbg_free(&clixon_service.ctr_drbg);
+mbedtls_entropy_free(&clixon_service.entropy);
+clixon_service.tls_initialized = false;
+LOG_INF("TLS context cleaned up");
+}
+}
+#endif /* CONFIG_CLIXON_NETCONF_TLS */
+
 /**
  * @brief Initialize NETCONF server
  */
 static int netconf_init(void)
 {
+int ret;
+
 LOG_INF("Starting NETCONF server on port %d", CONFIG_CLIXON_NETCONF_PORT);
+
+#ifdef CONFIG_CLIXON_NETCONF_TLS
+/* Initialize TLS if enabled */
+ret = tls_init();
+if (ret < 0) {
+LOG_ERR("Failed to initialize TLS");
+return ret;
+}
+LOG_INF("NETCONF server will use TLS encryption");
+#else
+LOG_WRN("NETCONF server running WITHOUT TLS encryption");
+#endif
 
 clixon_service.netconf_running = false;
 
@@ -211,6 +398,11 @@ close(clixon_service.server_sock);
 
 /* Wait for thread to exit */
 k_thread_join(clixon_service.netconf_thread_id, K_SECONDS(5));
+
+#ifdef CONFIG_CLIXON_NETCONF_TLS
+/* Cleanup TLS context */
+tls_cleanup();
+#endif
 }
 }
 
