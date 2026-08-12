@@ -1,0 +1,24 @@
+tests:
+  clixon.netconf_tls:
+    tags:
+      - net
+      - netconf
+      - tls
+      - clixon
+    platform_allow:
+      - native_sim
+      - qemu_x86
+    integration_platforms:
+      - native_sim
+    harness: pytest
+    harness_config:
+      fixture: test_netconf_tls
+      pytest_root:
+        - "pytest/test_netconf_tls.py"
+    min_ram: 64
+    timeout: 60
+    extra_configs:
+      - CONFIG_CLIXON_NETCONF=y
+      - CONFIG_CLIXON_NETCONF_TLS=y
+      - CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.0.2.1"
+      - CONFIG_NET_CONFIG_PEER_IPV4_ADDR="192.0.2.2"
