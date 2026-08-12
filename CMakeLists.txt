@@ -1,14 +1,26 @@
-if(CONFIG_CLIXON)
+if(CONFIG_CLIXON OR CONFIG_CLIXON_SERVICE)
 
 zephyr_library()
 
 # Add include directories
-zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/include)
-zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/lib/src)
+zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/zephyr)
 
-# Core clixon library sources
-zephyr_library_sources(
-  ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_autocli.c
+if(CONFIG_CLIXON)
+  zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/include)
+  zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/lib/src)
+endif()
+
+# Clixon service (auto-initialization support)
+if(CONFIG_CLIXON_SERVICE)
+  zephyr_library_sources(
+    ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/clixon_service.c
+  )
+endif()
+
+# Core clixon library sources (only when full library is enabled)
+if(CONFIG_CLIXON)
+  zephyr_library_sources(
+    ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_autocli.c
   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_autocli_generate.c
   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_client.c
   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_data.c
@@ -69,25 +81,26 @@ zephyr_library_sources(
   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_schema_mount.c
   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_sub_parse.c
   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_type.c
-)
+  )
 
-# Parser sources (flex/bison generated files may need special handling)
-# These may require pre-generated C files or build-time generation
-# zephyr_library_sources(
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_api_path_parse.c
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_instance_id_parse.c
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_json_parse.c
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_text_syntax_parse.c
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_parse.c
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xpath_parse.c
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_parse.c
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_schemanode_parse.c
-#   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_sub_parse.c
-# )
+  # Parser sources (flex/bison generated files may need special handling)
+  # These may require pre-generated C files or build-time generation
+  # zephyr_library_sources(
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_api_path_parse.c
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_instance_id_parse.c
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_json_parse.c
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_text_syntax_parse.c
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xml_parse.c
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_xpath_parse.c
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_parse.c
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_schemanode_parse.c
+  #   ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_yang_sub_parse.c
+  # )
 
-# Add compiler definitions if debug is enabled
-if(CONFIG_CLIXON_DEBUG)
-  zephyr_compile_definitions(CLIXON_DEBUG=1)
-endif()
-
+  # Add compiler definitions if debug is enabled
+  if(CONFIG_CLIXON_DEBUG)
+    zephyr_compile_definitions(CLIXON_DEBUG=1)
+  endif()
 endif() # CONFIG_CLIXON
+
+endif() # CONFIG_CLIXON OR CONFIG_CLIXON_SERVICE

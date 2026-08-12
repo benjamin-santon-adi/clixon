@@ -10,6 +10,10 @@
 /* Clixon headers would be included here when ready */
 /* #include <clixon/clixon.h> */
 
+#ifdef CONFIG_CLIXON_SERVICE
+#include "clixon_service.h"
+#endif
+
 int main(void)
 {
 	printk("Clixon Sample Application\n");
@@ -19,7 +23,15 @@ int main(void)
 	printk("This is a sample application demonstrating Clixon library integration\n");
 	printk("with Zephyr RTOS.\n\n");
 
-	/* Initialize Clixon library */
+#ifdef CONFIG_CLIXON_SERVICE
+	/* Check if Clixon service was initialized via SYS_INIT */
+	if (clixon_service_is_initialized()) {
+		printk("Clixon service was initialized before main() via SYS_INIT\n");
+	} else {
+		printk("Clixon service is not initialized\n");
+	}
+#else
+	/* Initialize Clixon library manually */
 	printk("Initializing Clixon...\n");
 	
 	/* TODO: Add Clixon initialization code here */
@@ -32,6 +44,7 @@ int main(void)
 	 */
 
 	printk("Clixon initialization complete\n");
+#endif
 
 	/* Example usage of Clixon features */
 	printk("\nDemonstrating Clixon features:\n");

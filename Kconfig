@@ -5,6 +5,25 @@ config CLIXON
 	  with interactive CLI, NETCONF and RESTCONF interfaces, an embedded
 	  database and transaction mechanism.
 
+config CLIXON_SERVICE
+	bool "Enable Clixon service auto-initialization"
+	default y if CLIXON
+	select LOG
+	help
+	  Enable automatic initialization of Clixon service at boot time
+	  using SYS_INIT. The service will be initialized before main().
+	  This can be enabled independently for testing even when the full
+	  Clixon library is not yet ported.
+
+config CLIXON_SERVICE_INIT_PRIORITY
+	int "Clixon service initialization priority"
+	default 90
+	depends on CLIXON_SERVICE
+	help
+	  Initialization priority for the Clixon service.
+	  Lower values mean earlier initialization.
+	  Default is 90 (APPLICATION level, late initialization).
+
 if CLIXON
 
 config CLIXON_DEBUG
@@ -14,3 +33,11 @@ config CLIXON_DEBUG
 	  Enable debug logging for Clixon library
 
 endif # CLIXON
+
+if CLIXON || CLIXON_SERVICE
+
+module = CLIXON
+module-str = clixon
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # CLIXON || CLIXON_SERVICE
