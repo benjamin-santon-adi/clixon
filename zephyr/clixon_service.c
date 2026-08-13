@@ -385,8 +385,8 @@ mbedtls_ctr_drbg_random,
 #ifdef CONFIG_MBEDTLS_DEBUG
 /* Set debug callback for verbose TLS logging */
 mbedtls_ssl_conf_dbg(&clixon_service.ssl_conf, tls_debug, NULL);
-mbedtls_debug_set_threshold(4); /* 0-4, 4 is most verbose */
-LOG_INF("mbedTLS debug logging enabled");
+mbedtls_debug_set_threshold(2); /* 0-4: 0=none, 1=error, 2=state, 3=info, 4=verbose */
+LOG_INF("mbedTLS debug logging enabled (level 2)");
 #endif
 
 /* Configure our certificate */
