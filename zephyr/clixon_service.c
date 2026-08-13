@@ -146,7 +146,7 @@ bool tls_initialized;
 
 #ifdef CONFIG_CLIXON_NETCONF
 
-#define NETCONF_THREAD_STACK_SIZE 4096
+#define NETCONF_THREAD_STACK_SIZE 8192
 #define NETCONF_THREAD_PRIORITY 7
 #define NETCONF_MAX_CLIENTS 4
 
@@ -287,10 +287,107 @@ ret = mbedtls_ssl_write(&ssl, (const unsigned char *)hello_msg,
 strlen(hello_msg));
 if (ret < 0) {
 LOG_ERR("Failed to send hello over TLS: -0x%04x", -ret);
-} else {
+mbedtls_ssl_close_notify(&ssl);
+mbedtls_ssl_free(&ssl);
+close(client_sock);
+goto next_client;
+}
 LOG_INF("Sent NETCONF hello message to client over TLS");
+
+/* Wait for client hello */
+static unsigned char recv_buf[2048];
+int hello_received = 0;
+while (!hello_received) {
+ret = mbedtls_ssl_read(&ssl, recv_buf, sizeof(recv_buf) - 1);
+if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+continue;
+}
+if (ret <= 0) {
+LOG_ERR("Failed to receive client hello: -0x%04x", -ret);
+break;
+}
+recv_buf[ret] = '\0';
+LOG_INF("Received client hello (%d bytes)", ret);
+hello_received = 1;
 }
 
+/* Keep connection open and handle RPC messages */
+LOG_INF("NETCONF session established, waiting for RPC messages...");
+int session_active = 1;
+while (session_active) {
+ret = mbedtls_ssl_read(&ssl, recv_buf, sizeof(recv_buf) - 1);
+
+if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+k_sleep(K_MSEC(10));
+continue;
+}
+
+if (ret <= 0) {
+if (ret == 0 || ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+LOG_INF("Client closed connection gracefully");
+} else {
+LOG_ERR("Connection error: -0x%04x", -ret);
+}
+break;
+}
+
+recv_buf[ret] = '\0';
+LOG_DBG("Received RPC message (%d bytes)", ret);
+
+/* Simple RPC handling - check for close-session */
+if (strstr((char *)recv_buf, "<close-session")) {
+LOG_INF("Received close-session request");
+const char *ok_reply = 
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+"<rpc-reply xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\" message-id=\"1\">\n"
+"  <ok/>\n"
+"</rpc-reply>\n"
+"]]>]]>\n";
+mbedtls_ssl_write(&ssl, (const unsigned char *)ok_reply, strlen(ok_reply));
+session_active = 0;
+} else if (strstr((char *)recv_buf, "<get-config")) {
+LOG_INF("Received get-config request");
+/* Send a simple empty config response */
+const char *config_reply = 
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+"<rpc-reply xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\" message-id=\"1\">\n"
+"  <data>\n"
+"    <!-- Empty configuration -->\n"
+"  </data>\n"
+"</rpc-reply>\n"
+"]]>]]>\n";
+mbedtls_ssl_write(&ssl, (const unsigned char *)config_reply, strlen(config_reply));
+LOG_INF("Sent config response");
+} else if (strstr((char *)recv_buf, "<get>")) {
+LOG_INF("Received get request");
+const char *get_reply = 
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+"<rpc-reply xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\" message-id=\"1\">\n"
+"  <data>\n"
+"    <!-- Operational state -->\n"
+"  </data>\n"
+"</rpc-reply>\n"
+"]]>]]>\n";
+mbedtls_ssl_write(&ssl, (const unsigned char *)get_reply, strlen(get_reply));
+LOG_INF("Sent get response");
+} else {
+LOG_WRN("Unknown RPC received, sending error");
+const char *error_reply = 
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+"<rpc-reply xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\" message-id=\"1\">\n"
+"  <rpc-error>\n"
+"    <error-type>protocol</error-type>\n"
+"    <error-tag>operation-not-supported</error-tag>\n"
+"    <error-severity>error</error-severity>\n"
+"    <error-message>Operation not yet implemented</error-message>\n"
+"  </rpc-error>\n"
+"</rpc-reply>\n"
+"]]>]]>\n";
+mbedtls_ssl_write(&ssl, (const unsigned char *)error_reply, strlen(error_reply));
+}
+}
+
+LOG_INF("Closing NETCONF session");
 mbedtls_ssl_close_notify(&ssl);
 mbedtls_ssl_free(&ssl);
 #else
