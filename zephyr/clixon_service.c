@@ -39,6 +39,10 @@
 #include <errno.h>
 #include "clixon_netconf_lib.h"
 
+#ifdef CONFIG_CLIXON_DATASTORE
+#include "clixon_datastore.h"
+#endif
+
 #ifdef CONFIG_CLIXON_NETCONF_TLS
 #include <zephyr/net/tls_credentials.h>
 #include <mbedtls/ssl.h>
@@ -128,7 +132,11 @@ static int tls_recv(void *ctx, unsigned char *buf, size_t len)
 /* Clixon service state */
 static struct {
 bool initialized;
+#ifdef CONFIG_CLIXON
 clixon_handle handle;
+#else
+void *handle;  /* Placeholder when full Clixon library is not enabled */
+#endif
 #ifdef CONFIG_CLIXON_NETCONF
 int server_sock;
 k_tid_t netconf_thread_id;
@@ -703,6 +711,7 @@ LOG_WRN("Clixon service already initialized");
 return 0;
 }
 
+#ifdef CONFIG_CLIXON
 /* Initialize Clixon library */
 clixon_service.handle = clixon_handle_init();
 if (clixon_service.handle == NULL) {
@@ -737,6 +746,24 @@ if (ret < 0) {
 LOG_ERR("Failed to initialize options");
 return -EINVAL;
 }
+#endif /* CONFIG_CLIXON */
+
+#ifdef CONFIG_CLIXON_DATASTORE
+/* Initialize datastore backend */
+LOG_INF("Initializing Clixon datastore backend...");
+#ifdef CONFIG_CLIXON
+ret = clixon_datastore_init(clixon_service.handle);
+#else
+ret = clixon_datastore_init(NULL);
+#endif
+if (ret < 0) {
+LOG_ERR("Failed to initialize datastore: %d", ret);
+LOG_WRN("Continuing without persistent storage");
+/* Don't fail initialization, continue with in-memory operation */
+} else {
+LOG_INF("Datastore initialized at %s", clixon_datastore_get_dir());
+}
+#endif
 
 #ifdef CONFIG_CLIXON_NETCONF
 /* Initialize NETCONF server */
@@ -763,6 +790,7 @@ bool clixon_service_is_initialized(void)
 return clixon_service.initialized;
 }
 
+#ifdef CONFIG_CLIXON
 /**
  * @brief Get the Clixon handle from the service
  *
@@ -772,6 +800,7 @@ clixon_handle clixon_service_get_handle(void)
 {
 return clixon_service.handle;
 }
+#endif /* CONFIG_CLIXON */
 
 /* Initialize the service at APPLICATION level, before main() */
 SYS_INIT(clixon_service_init, APPLICATION, CONFIG_CLIXON_SERVICE_INIT_PRIORITY);

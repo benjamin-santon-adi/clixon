@@ -58,6 +58,75 @@ config CLIXON_NETCONF_PORT
 	  TCP port for NETCONF connections.
 	  Default is 830 (IANA assigned port for NETCONF over SSH/TLS).
 
+config CLIXON_DATASTORE
+	bool "Enable Clixon datastore backend"
+	select FILE_SYSTEM
+	help
+	  Enable Clixon datastore support for persistent configuration storage.
+	  Requires filesystem support (LittleFS, FAT, or NVS).
+	  Can be used independently of full Clixon library.
+
+if CLIXON_DATASTORE
+
+choice CLIXON_DATASTORE_BACKEND
+	prompt "Datastore backend"
+	default CLIXON_DATASTORE_LITTLEFS
+	help
+	  Select the filesystem backend for Clixon datastore.
+
+config CLIXON_DATASTORE_LITTLEFS
+	bool "LittleFS"
+	select FILE_SYSTEM_LITTLEFS
+	select FLASH
+	select FLASH_MAP
+	help
+	  Use LittleFS for Clixon datastore.
+	  Provides power-fail safe storage on flash memory.
+
+config CLIXON_DATASTORE_FAT
+	bool "FAT filesystem"
+	select FILE_SYSTEM_FAT
+	help
+	  Use FAT filesystem for Clixon datastore.
+	  Suitable for SD cards or external storage.
+
+config CLIXON_DATASTORE_NVS
+	bool "Non-Volatile Storage (NVS)"
+	select NVS
+	select FLASH
+	help
+	  Use Zephyr NVS for Clixon datastore.
+	  Key-value storage optimized for embedded systems.
+
+endchoice
+
+config CLIXON_XMLDB_DIR
+	string "Datastore directory path"
+	default "/lfs/clixon" if CLIXON_DATASTORE_LITTLEFS
+	default "/SD:/clixon" if CLIXON_DATASTORE_FAT
+	default "/nvs/clixon" if CLIXON_DATASTORE_NVS
+	help
+	  Directory path for Clixon XML database files.
+	  Must be on the selected filesystem backend mount point.
+
+config CLIXON_XMLDB_FORMAT
+	string "Datastore format"
+	default "xml"
+	help
+	  Format for datastore files (xml, json, or text).
+	  XML is standard and recommended.
+
+config CLIXON_YANG_DIR
+	string "YANG modules directory"
+	default "/lfs/yang" if CLIXON_DATASTORE_LITTLEFS
+	default "/SD:/yang" if CLIXON_DATASTORE_FAT
+	default ":memory:" if CLIXON_DATASTORE_NVS
+	help
+	  Directory containing YANG module files.
+	  Use :memory: to embed YANG modules in flash.
+
+endif # CLIXON_DATASTORE
+
 endif # CLIXON
 
 config CLIXON_SERVICE

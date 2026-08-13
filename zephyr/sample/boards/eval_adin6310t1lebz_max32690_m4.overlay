@@ -1,0 +1,42 @@
+/*
+ * Copyright (c) 2024 Benjamin Santon ADI
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Clixon LittleFS storage overlay for eval_adin6310t1lebz/max32690/m4
+ *
+ * Allocates 256KB of internal flash for Clixon configuration storage
+ * Flash layout on MAX32690 (3MB total):
+ * - 0x00000000-0x002C0000: Application code (~2.75MB)
+ * - 0x002C0000-0x00300000: Clixon storage (256KB) <-- This partition
+ */
+
+/ {
+	fstab {
+		compatible = "zephyr,fstab";
+		lfs1: lfs1 {
+			compatible = "zephyr,fstab,littlefs";
+			mount-point = "/lfs";
+			partition = <&clixon_partition>;
+			automount;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <256>;
+			lookahead-size = <32>;
+			block-cycles = <512>;
+		};
+	};
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/* Reserve last 256KB of flash for Clixon data */
+		clixon_partition: partition@2c0000 {
+			label = "clixon-storage";
+			reg = <0x002c0000 0x00040000>; /* 256KB at 2.75MB offset */
+		};
+	};
+};

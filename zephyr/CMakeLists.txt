@@ -34,13 +34,16 @@ if(CONFIG_CLIXON_SERVICE)
   zephyr_library_sources(
     ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/clixon_service.c
   )
-  # Service needs hash for options handling
-  if(NOT CONFIG_CLIXON)
+  
+  # Datastore backend support
+  if(CONFIG_CLIXON_DATASTORE)
     zephyr_library_sources(
-      ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_hash.c
-      ${ZEPHYR_CURRENT_MODULE_DIR}/lib/src/clixon_handle.c
+      ${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/clixon_datastore.c
     )
   endif()
+  
+  # Service uses hash and handle when full library is enabled
+  # These are already included in the full library build
 endif()
 
 # Zephyr compatibility layer
