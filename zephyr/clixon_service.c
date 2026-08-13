@@ -334,6 +334,25 @@ break;
 recv_buf[ret] = '\0';
 LOG_DBG("Received RPC message (%d bytes)", ret);
 
+/* TODO: Proper Clixon Integration Required
+ * ==========================================
+ * The code below uses hardcoded XML responses as a simplified demonstration.
+ * For production use, this should be replaced with Clixon's native NETCONF handling:
+ *
+ * 1. Parse incoming message: clixon_xml_parse_string(recv_buf, YB_RPC, ...)
+ * 2. Dispatch RPC: netconf_rpc_dispatch(clixon_service.handle, xn, &xret, &eof)
+ * 3. Serialize response: clixon_xml2cbuf(cb, xret, ...)
+ * 4. Initialize datastore: Load YANG modules, configure storage backend
+ *
+ * See NETCONF_CLIXON_INTEGRATION.md for detailed integration guide.
+ * 
+ * Current limitations:
+ * - No YANG validation
+ * - No persistent storage
+ * - No edit-config/commit support
+ * - Hardcoded data models
+ */
+
 /* Simple RPC handling - check for close-session */
 if (strstr((char *)recv_buf, "<close-session")) {
 LOG_INF("Received close-session request");
