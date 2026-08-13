@@ -347,29 +347,102 @@ mbedtls_ssl_write(&ssl, (const unsigned char *)ok_reply, strlen(ok_reply));
 session_active = 0;
 } else if (strstr((char *)recv_buf, "<get-config")) {
 LOG_INF("Received get-config request");
-/* Send a simple empty config response */
+
+/* Provide basic system and interface configuration */
 const char *config_reply = 
 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 "<rpc-reply xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\" message-id=\"1\">\n"
 "  <data>\n"
-"    <!-- Empty configuration -->\n"
+"    <system xmlns=\"urn:ietf:params:xml:ns:yang:ietf-system\">\n"
+"      <hostname>zephyr-netconf</hostname>\n"
+"      <contact>admin@localhost</contact>\n"
+"      <location>Embedded Device</location>\n"
+"    </system>\n"
+"    <interfaces xmlns=\"urn:ietf:params:xml:ns:yang:ietf-interfaces\">\n"
+"      <interface>\n"
+"        <name>eth0</name>\n"
+"        <description>Primary Ethernet Interface</description>\n"
+"        <type xmlns:ianaift=\"urn:ietf:params:xml:ns:yang:iana-if-type\">ianaift:ethernetCsmacd</type>\n"
+"        <enabled>true</enabled>\n"
+"      </interface>\n"
+"    </interfaces>\n"
 "  </data>\n"
 "</rpc-reply>\n"
 "]]>]]>\n";
+
 mbedtls_ssl_write(&ssl, (const unsigned char *)config_reply, strlen(config_reply));
-LOG_INF("Sent config response");
+LOG_INF("Sent config response with system and interface data");
+
 } else if (strstr((char *)recv_buf, "<get>")) {
 LOG_INF("Received get request");
-const char *get_reply = 
+
+/* Provide operational state including NETCONF monitoring */
+char get_reply[2048];
+int len = snprintf(get_reply, sizeof(get_reply),
 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 "<rpc-reply xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\" message-id=\"1\">\n"
 "  <data>\n"
-"    <!-- Operational state -->\n"
+"    <netconf-state xmlns=\"urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring\">\n"
+"      <capabilities>\n"
+"        <capability>urn:ietf:params:netconf:base:1.0</capability>\n"
+"        <capability>urn:ietf:params:netconf:base:1.1</capability>\n"
+"        <capability>urn:ietf:params:netconf:capability:candidate:1.0</capability>\n"
+"        <capability>urn:ietf:params:netconf:capability:rollback-on-error:1.0</capability>\n"
+"      </capabilities>\n"
+"      <datastores>\n"
+"        <datastore>\n"
+"          <name>running</name>\n"
+"          <locks/>\n"
+"        </datastore>\n"
+"        <datastore>\n"
+"          <name>candidate</name>\n"
+"          <locks/>\n"
+"        </datastore>\n"
+"        <datastore>\n"
+"          <name>startup</name>\n"
+"          <locks/>\n"
+"        </datastore>\n"
+"      </datastores>\n"
+"      <sessions>\n"
+"        <session>\n"
+"          <session-id>%s</session-id>\n"
+"          <transport>netconf-tls</transport>\n"
+"          <username>admin</username>\n"
+"          <source-host>%s</source-host>\n"
+"          <login-time>%lld</login-time>\n"
+"        </session>\n"
+"      </sessions>\n"
+"      <statistics>\n"
+"        <in-bad-hellos>0</in-bad-hellos>\n"
+"        <in-sessions>1</in-sessions>\n"
+"        <dropped-sessions>0</dropped-sessions>\n"
+"        <in-rpcs>1</in-rpcs>\n"
+"        <in-bad-rpcs>0</in-bad-rpcs>\n"
+"        <out-rpc-errors>0</out-rpc-errors>\n"
+"        <out-notifications>0</out-notifications>\n"
+"      </statistics>\n"
+"    </netconf-state>\n"
+"    <system xmlns=\"urn:ietf:params:xml:ns:yang:ietf-system\">\n"
+"      <hostname>zephyr-netconf</hostname>\n"
+"      <contact>admin@localhost</contact>\n"
+"      <location>Embedded Device</location>\n"
+"    </system>\n"
+"    <interfaces xmlns=\"urn:ietf:params:xml:ns:yang:ietf-interfaces\">\n"
+"      <interface>\n"
+"        <name>eth0</name>\n"
+"        <description>Primary Ethernet Interface</description>\n"
+"        <type xmlns:ianaift=\"urn:ietf:params:xml:ns:yang:iana-if-type\">ianaift:ethernetCsmacd</type>\n"
+"        <enabled>true</enabled>\n"
+"        <oper-status>up</oper-status>\n"
+"      </interface>\n"
+"    </interfaces>\n"
 "  </data>\n"
 "</rpc-reply>\n"
-"]]>]]>\n";
-mbedtls_ssl_write(&ssl, (const unsigned char *)get_reply, strlen(get_reply));
-LOG_INF("Sent get response");
+"]]>]]>\n", 
+client_ip, client_ip, (long long)k_uptime_get() / 1000);
+
+mbedtls_ssl_write(&ssl, (const unsigned char *)get_reply, len);
+LOG_INF("Sent get response with operational state and monitoring data");
 } else {
 LOG_WRN("Unknown RPC received, sending error");
 const char *error_reply = 
